@@ -2,34 +2,37 @@
 
 void drawEfficiency()
 {
-    auto file = new TFile("efficiency2.root");
+    gStyle -> SetOptStat(0);
+    //auto file = new TFile("efficiency3.root");
+    //auto file = new TFile("efficiency_normal.root");
+    auto file = new TFile("efficiency_allfound.root");
     auto eff = (TEfficiency*) file -> Get("e3MomThetaPhi_Embed132Sn_Proton");
-    //auto eff = (TEfficiency*) file -> Get("e3MomThetaPhi_Embed132Sn_Alpha");
     auto hist = (TH3D*) eff -> GetTotalHistogram();
-    auto bx = ejungwoo::Binning(hist -> GetXaxis());
-    auto by = ejungwoo::Binning(hist -> GetYaxis());
-    auto bz = ejungwoo::Binning(hist -> GetZaxis());
-    auto histxy = new TH2D("histxy",";x;y",bx.nx(),bx.x1(),bx.x2(),by.nx(),by.x1(),by.x2());
-    auto histyz = new TH2D("histyz",";y;z",by.nx(),by.x1(),by.x2(),bz.nx(),bz.x1(),bz.x2());
-    auto histzx = new TH2D("histzx",";z;x",bz.nx(),bz.x1(),bz.x2(),bx.nx(),bx.x1(),bx.x2());
+    auto bx = ejungwoo::Binning(hist->GetXaxis());
+    auto by = ejungwoo::Binning(hist->GetYaxis());
+    auto bz = ejungwoo::Binning(hist->GetZaxis());
+    auto hist1 = new TH2D("hist1",";p;theta",bx.nx(),bx.x1(),bx.x2(),by.nx(),by.x1(),by.x2());
+    auto hist2 = new TH2D("hist2",";p;phi",bx.nx(),bx.x1(),bx.x2(),bz.nx(),bz.x1(),bz.x2());
+    auto hist3 = new TH2D("hist3",";theta;phi",by.nx(),by.x1(),by.x2(),bz.nx(),bz.x1(),bz.x2());
+    auto histEfficiency = new TH1D("hist",";efficiency;",201,0,1.05);
 
-    for (auto x=bx.x1(); x<bx.nx(); x+=bx.dx()) {
-        for (auto y=by.x1(); y<by.nx(); y+=by.dx()) {
-            for (auto z=bz.x1(); z<bz.nx(); z+=bz.dx()) {
-                auto bin = eff -> FindFixBin(x,y,z);
-                auto val = eff -> GetEfficiency(bin);
-                if (val>0) {
-                    histxy -> Fill(x,y,val);
-                    histyz -> Fill(y,z,val);
-                    histzx -> Fill(z,x,val);
-                    cout << x << " " << y << " " << z << " " << val << endl;
-                }
-            }
-        }
+    for (auto x=bx.x1()+0.5*bx.dx(); x<bx.x2(); x+=bx.dx())
+    for (auto y=by.x1()+0.5*by.dx(); y<by.x2(); y+=by.dx())
+    for (auto z=bz.x1()+0.5*bz.dx(); z<bz.x2(); z+=bz.dx())
+    {
+        auto bin = eff -> FindFixBin(x,y,z);
+        auto val = eff -> GetEfficiency(bin);
+        hist1 -> Fill(x,y,val);
+        hist2 -> Fill(x,z,val);
+        hist3 -> Fill(y,z,val);
+        histEfficiency -> Fill(val);
     }
 
     auto cvs = ejungwoo::Canvas("cvs",100,50,3,1);
-    cvs -> cd(1); histxy -> Draw("colz");
-    cvs -> cd(2); histyz -> Draw("colz");
-    cvs -> cd(3); histzx -> Draw("colz");
+    cvs -> cd(1); hist1 -> Draw("colz");
+    cvs -> cd(3); hist2 -> Draw("colz");
+    cvs -> cd(2); hist3 -> Draw("colz");
+
+    auto cvs2 = ejungwoo::Canvas("cvs2",2,2);
+    histEfficiency -> Draw();
 }

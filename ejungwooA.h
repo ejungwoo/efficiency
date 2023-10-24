@@ -330,6 +330,7 @@ namespace ejungwoo
             int fNumBins[3] = {100,100,100};
             double fMin[3] = {0,0,0};
             double fMax[3] = {100,100,100};
+            double fDx[3] = {1,1,1};
             TH1D* fHist = nullptr;
             TH2D* fHist2 = nullptr;
             TH3D* fHist3 = nullptr;
@@ -353,14 +354,21 @@ namespace ejungwoo
                 Set(*binning2,1);
                 Set(*binning3,2);
             }
-            Binning(TAxis *axis) {
-                SetBinning(axis->GetNbins(),axis->GetXmin(),axis->GetXmax());
+            Binning(TAxis *axis0, TAxis *axis1=nullptr, TAxis *axis2=nullptr) {
+                Set("x",axis0->GetTitle(),"",axis0->GetNbins(),axis0->GetXmin(),axis0->GetXmax(),0);
+                if (axis1!=nullptr) Set("y",axis0->GetTitle(),"",axis1->GetNbins(),axis1->GetXmin(),axis1->GetXmax(),1);
+                if (axis2!=nullptr) Set("z",axis0->GetTitle(),"",axis2->GetNbins(),axis2->GetXmin(),axis2->GetXmax(),2);
             }
+
+            void Print();
 
             double nx() { return fNumBins[0]; }
             double x1() { return fMin[0]; }
             double x2() { return fMax[0]; }
-            double dx() { return (fMax[0]-fMin[0])/fNumBins[0]; }
+            double dx() { return fDx[0]; }
+
+            //void reset(int iAxis=0) { fIdx[iAxis] = 0; }
+            //double next(int iAxis=0) { if (fIdx[iAxis]>n-1) return false; fValue[iAxis] = fMin[iAxis] + ((fIdx[iAxis]++)+1) * fDx[iAxis]; return true; }
 
             void SetMainTitle(TString title) { fMainTitle = title; }
             void SetNameMainTitle(TString name, TString title) { fName = name; fMainTitle = title; }
@@ -401,6 +409,7 @@ namespace ejungwoo
                 fNumBins[iAxis] = numBins;
                 fMin[iAxis] = x1;
                 fMax[iAxis] = x2;
+                fDx[iAxis] = (x2-x1)/numBins;
             }
 
             TString GetSelection(int dim=1) {
