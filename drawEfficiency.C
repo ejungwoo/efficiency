@@ -7,7 +7,7 @@ void drawEfficiency()
     //auto file = new TFile("efficiency_normal.root");
     //auto file = new TFile("efficiency_allfound.root");
     //auto file = new TFile("efficiency_allfound.root");
-    auto file = new TFile("/home/ejungwoo/efficiency_hokusai_ejungwoo/efficiency2.root");
+    auto file = new TFile("efficiency2.root");
     auto eff = (TEfficiency*) file -> Get("e3MomThetaPhi_Embed132Sn_Proton");
     auto hist = (TH3D*) eff -> GetTotalHistogram();
     auto nx = hist -> GetXaxis() -> GetNbins();

@@ -22,7 +22,8 @@ const double effXmax[5] = { 1500, 2200, 3200, 3200, 4200 };
 
 TString embedFileName(int type, int part)
 {
-	TString path = "/data/Q23393/common/efficiency/embed108/";
+	//TString path = "/data/Q23393/common/efficiency/embed108/";
+	TString path = "/Users/ejungwoo/data/spirit/efficiency/";
 	//TString path = "/data/Q18393/isobe/20190822SingleIonMC/20200115/tree_proton_embed132.left.vaprip.root";
 	//TString path = "/data/Q18393/common/efficiency/";
 	//TString path = "./test/";
@@ -191,8 +192,8 @@ void fillEmbedding()
         if (/*beamPICut[i]->IsInside(aoq,z) &&*/
             true
             //&& TMath::Abs(vz-vzPar[i][1])<=3.*vzPar[i][2]
-            && TMath::Abs(vz-vzPar[i][1])<=10.*vzPar[i][2]
-			&& TMath::Abs(vx)<=15.
+            //&& TMath::Abs(vz-vzPar[i][1])<=10.*vzPar[i][2]
+			//&& TMath::Abs(vx)<=15.
             //&& TMath::Abs(vy+205)<=20.
             //&& ggclose==0
             )
@@ -283,6 +284,7 @@ void fillEmbedding()
                 mctrkTree[i][j]->GetEntry(entry);
 
                 if(!eventCut(i,zet,aoq,vtxz,vtxx,vtxy,ggclose)) continue;
+	auto eventCut = [&](int i, double z, double aoq, double vz, double vx, double vy, bool ggclose)
 
                 TVector3 labMom(mcpx,mcpy,mcpz);
                 labMom.RotateY(invProjA[i]);
@@ -313,8 +315,7 @@ void fillEmbedding()
                 if(entry==nEntries-1) std::cout<<" -> finish analysis!!"<<std::endl;
                 trkTree[i][j]->GetEntry(entry);
 
-                if(!eventCut(i,zet,aoq,vtxz,vtxx,vtxy,ggclose)) continue;
-
+                //if(!eventCut(i,zet,aoq,vtxz,vtxx,vtxy,ggclose)) continue;
 
                 TVector3 initMom(mcpx,mcpy,mcpz);
                 initMom.RotateY(invProjA[i]);
@@ -383,7 +384,7 @@ void fillEmbedding()
                 if( recodist<=20&&nclus>=15 ){
                     h1NECRatio[i][j]->Fill((double)neclus/nclus);
                     for(auto recotype: TSeqI(3)){
-                        if(!(RecoPhi[recotype]>=-30&&RecoPhi[recotype]<=20))continue;
+                        //if(!(RecoPhi[recotype]>=-30&&RecoPhi[recotype]<=20))continue;
                         int isembed = neclus>=0.5*nclus;
                         h2ThetaCor[i][j][recotype][!isembed]->Fill(initMom.Theta(),RecoTheta[recotype]);
                         h2PhiCor[i][j][recotype][!isembed]->Fill(initMom.Phi(),RecoPhi[recotype]);
