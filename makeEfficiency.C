@@ -69,7 +69,7 @@ void makeEfficiency()
 
         // input file ---------------------------------------------------------------------------------------------------
 
-        auto fileIn = new TFile(Form("/Users/ejungwoo/data/spirit/efficiency/tree_%s_embed108.root",pidName));
+        auto fileIn = new TFile(Form("/home/ejungwoo/data/spirit/efficiency/tree_%s_embed108.root",pidName));
         auto treeTrack = (TTree*) fileIn -> Get("trktree");
 
         double zet,aoq;

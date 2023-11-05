@@ -1,9 +1,10 @@
-void makeEfficiency()
+void makeEfficiencyHist()
 {
     const int iSys = 0;
 
-    // general flags  ---------------------------------------------------------------------------------------------------
+    // general ---------------------------------------------------------------------------------------------------
 
+    const char* pathToEmbeddingTrees = "/home/ejungwoo/data/spirit/efficiency/"; // tree_proton_embed108 ...
     bool writeOutputTree = false;
     bool writeEfficiency2 = true;
     bool drawEfficiency2 = true;
@@ -24,6 +25,19 @@ void makeEfficiency()
     const double p2[5]       = { 1500, 2200, 3200, 3200, 4200 };
     const TString pidNames[] = { "proton","deuteron","triton","he3","alpha" };
 
+    int numTP = 2;
+    int numResolution = 2;
+    int numTestMom = 8;
+    double testMomBinSize = 400;
+
+    const int kTotal = 0;
+    const int kPassed = 1;
+    const int kHigh = 0;
+    const int kLow = 1;
+    const int numP0 = 150;
+    const int numTheta0 = 150;
+    const int numPhi0 = 300;
+
     // vertex and beam ---------------------------------------------------------------------------------------------------
 
     auto fileVT = new TFile("Vertex.root");
@@ -35,34 +49,38 @@ void makeEfficiency()
 
     auto fileOut = new TFile("efficiency.108Sn.root","recreate");
 
-    for (auto iParticle : {0,1,2,3,4})
+    //for (auto iParticle : {0,1,2,3,4})
+    for (auto iParticle : {0})
     {
+        const char *namePID = pidNames[iParticle].Data();
+        cout << "== " << namePID << endl;
         // output ---------------------------------------------------------------------------------------------------
 
         fileOut -> cd();
-        const char *namePID = pidNames[iParticle].Data();
-        const char *namePID = pidNames[iParticle].Data();
-        TString name3Passed = Form("h3_passed_%s",namePID);
-        TString name2Passed = Form("h2_passed_%s",namePID);
-        TString name3Total  = Form("h3_total_%s",namePID);
-        TString name2Total  = Form("h2_total_%s",namePID);
-        TString name2       = Form("e2ThetaPhi_%s_",namePID);
-        TString name3       = Form("e3MomThetaPhi_%s",namePID);
-        //TEfficiency *e3MomThetaPhi = new TEfficiency(name3, ";#it{p}^{va};#theta_{lab};#phi_{lab}", 150,p1[iParticle],p2[iParticle],150,0,90,300,-180,180);
-        auto 
-        TEfficiency *e2ThetaPhi[4] = {0};
-        if (writeEfficiency2) {
-            e2ThetaPhi[0] = new TEfficiency(name2+0,    "p=0-500;#theta_{lab};#phi_{lab}",150,0,90,300,-180,180);
-            e2ThetaPhi[1] = new TEfficiency(name2+1, "p=500-1000;#theta_{lab};#phi_{lab}",150,0,90,300,-180,180);
-            e2ThetaPhi[2] = new TEfficiency(name2+2,"p=1000-1500;#theta_{lab};#phi_{lab}",150,0,90,300,-180,180);
-            e2ThetaPhi[3] = new TEfficiency(name2+3,"p=1500-2000;#theta_{lab};#phi_{lab}",150,0,90,300,-180,180);
+        TH3D* h3[numTP][numResolution];
+        TH2D* h2[numTP][numResolution][numTestMom];
+        for (auto iTP : {kTotal,kPassed}) {
+            const char* nameTP = (iTP==kTotal?"Total":"Passed");
+            for (auto iHL : {kHigh,kLow}) {
+                int numP = numP0;
+                int numTheta = numTheta0;
+                int numPhi = numPhi0;
+                if (iHL==kLow) {
+                    numP = numP0/3;
+                    numTheta = numTheta0/3;
+                    numPhi = numPhi0/3;
+                }
+                const char* nameHL = (iHL==kHigh?"Normal":"LowRes");
+                TString name3 = Form("h3_%s_%s_%s",namePID,nameTP,nameHL);
+                TString title3 = Form("%s, %s, %s;#it{p}^{va};#theta_{lab};#phi_{lab}",namePID,nameTP,nameHL);
+                h3[iTP][iHL] = new TH3D(name3,title3,numP,p1[iParticle],p2[iParticle],numTheta,0,90,numPhi,-180,180);
+                for (auto iMom=0; iMom<numTestMom; ++iMom) {
+                    TString name2 = Form("h2_%s_%s_%s_%d",namePID,nameTP,nameHL,iMom);
+                    TString title2 = Form("%s, %s, %s, p=%d-%d;#theta_{lab};#phi_{lab}",namePID,nameTP,nameHL,int(testMomBinSize*iMom),int(testMomBinSize*(iMom+1)));
+                    h2[iTP][iHL][iMom] = new TH2D(name2,title2,numTheta,0,90,numPhi,-180,180);
+                }
+            }
         }
-
-        TH2D* h2[numMom];
-        for (auto iMom=0; iMom<numMom; ++iMom)
-            h2[iMom] = new TH2D(name2Passed+iMom,Form("%s,passed p=%d-%d;#theta_{lab};#phi_{lab}",namePID,500*iMom,500*iMom),150,0,90,300,-180,180);
-
-        TH3D* h3 = new TEfficiency(name3, ";#it{p}^{va};#theta_{lab};#phi_{lab}",150,p1[iParticle],p2[iParticle],150,0,90,300,-180,180);
 
         int oDist, oNCluster, oNClusterE;
         bool oCutCluster, oIsTrackFound;
@@ -82,7 +100,8 @@ void makeEfficiency()
 
         // input file ---------------------------------------------------------------------------------------------------
 
-        auto fileIn = new TFile(Form("/Users/ejungwoo/data/spirit/efficiency/tree_%s_embed108.root",namePID));
+        const char* nameFile = Form("%s/tree_%s_embed108.root",pathToEmbeddingTrees,namePID);
+        auto fileIn = new TFile(nameFile);
         auto treeTrack = (TTree*) fileIn -> Get("trktree");
 
         double zet,aoq;
@@ -159,50 +178,72 @@ void makeEfficiency()
 
             if (oldMom!=initMom) {
                 oldMom = initMom;
-                e3MomThetaPhi -> Fill(isTrackFound,momMag,theta_deg,phi_deg);
-                if (writeEfficiency2) {
-                    if (momMag>   0 && momMag< 500) e2ThetaPhi[0] -> Fill(isTrackFound,theta_deg,phi_deg);
-                    if (momMag> 500 && momMag<1000) e2ThetaPhi[1] -> Fill(isTrackFound,theta_deg,phi_deg);
-                    if (momMag>1000 && momMag<1500) e2ThetaPhi[2] -> Fill(isTrackFound,theta_deg,phi_deg);
-                    if (momMag>1500)                e2ThetaPhi[3] -> Fill(isTrackFound,theta_deg,phi_deg);
+
+                for (auto iTP : {kTotal,kPassed}) {
+                    if (iTP==kPassed && !isTrackFound)
+                        continue;
+
+                    for (auto iHL : {kHigh,kLow}) {
+                        h3[iTP][iHL] -> Fill(momMag,theta_deg,phi_deg);
+                        for (auto iMom=0; iMom<numTestMom; ++iMom) {
+                            for (auto iMom=0; iMom<numTestMom; ++iMom) {
+                                if (momMag>testMomBinSize*iMom && momMag<testMomBinSize*(iMom+1))
+                                    h2[iTP][iHL][iMom] -> Fill(theta_deg,phi_deg);
+                            }
+                        }
+                    }
                 }
             }
 
-            oDist = recodist;
-            oNCluster = neclus;
-            oNClusterE = nclus;
-            oCutCluster = (neclus>=0.5*nclus);
-            oIsTrackFound = isTrackFound;
-            oMomMag = momMag;
-            oTheta = theta_deg;
-            oPhi =  phi_deg;
             if (writeOutputTree)
+            {
+                oDist = recodist;
+                oNCluster = neclus;
+                oNClusterE = nclus;
+                oCutCluster = (neclus>=0.5*nclus);
+                oIsTrackFound = isTrackFound;
+                oMomMag = momMag;
+                oTheta = theta_deg;
+                oPhi =  phi_deg;
                 treeOut -> Fill();
+            }
         }
         fileIn -> Close();
 
         // write and draw ---------------------------------------------------------------------------------------------------
 
         fileOut -> cd();
-        e3MomThetaPhi -> Write();
-        if (writeEfficiency2) {
-            e2ThetaPhi[0] -> Write();
-            e2ThetaPhi[1] -> Write();
-            e2ThetaPhi[2] -> Write();
-            e2ThetaPhi[3] -> Write();
+
+        for (auto iHL : {kHigh,kLow}) {
+            const char* nameHL = (iHL==kHigh?"HighRes":"LowRes");
+            TString name3 = Form("e3_%s_%s",namePID,nameHL);
+            auto e3 = new TEfficiency(*h3[kPassed][iHL], *h3[kTotal][iHL]);
+            e3 -> SetNameTitle(name3,h3[kPassed][iHL]->GetTitle());
+            e3 -> Write();
+
+            TCanvas* cvs = nullptr;
+            if (drawEfficiency2) {
+                cvs = new TCanvas(Form("cvs_e2_%s_%s",namePID,nameHL),"",3000,2000);
+                cvs -> Divide(4,2);
+            }
+
+            if (writeEfficiency2) {
+                for (auto iMom=0; iMom<numTestMom; ++iMom) {
+                    const char* nameHL = (iHL==kHigh?"HighRes":"LowRes");
+                    TString name2 = Form("e2_%s_%s_%d",namePID,nameHL,iMom);
+                    auto e2 = new TEfficiency(*h2[kPassed][iHL][iMom], *h2[kTotal][iHL][iMom]);
+                    e2 -> SetNameTitle(name2,h2[kPassed][iHL][iMom]->GetTitle());
+                    e2 -> Write();
+                    if (drawEfficiency2) {
+                        cvs -> cd(iMom+1);
+                        e2 -> Draw("colz");
+                    }
+                }
+            }
         }
+
         if (writeOutputTree)
             treeOut -> Write();
-
-        if (writeEfficiency2 && drawEfficiency2) {
-            auto cvs = new TCanvas(Form("cvs_e2_%s",namePID),"",1000,720);
-            cvs -> Divide(2,2);
-            cvs -> cd(1); e2ThetaPhi[0] -> Draw("colz");
-            cvs -> cd(2); e2ThetaPhi[1] -> Draw("colz");
-            cvs -> cd(3); e2ThetaPhi[2] -> Draw("colz");
-            cvs -> cd(4); e2ThetaPhi[3] -> Draw("colz");
-            cvs -> Write();
-        }
     }
 
     fileOut -> ls();
