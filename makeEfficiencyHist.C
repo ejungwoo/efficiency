@@ -40,16 +40,29 @@ void makeEfficiency()
         // output ---------------------------------------------------------------------------------------------------
 
         fileOut -> cd();
-        const char *pidName = pidNames[iParticle].Data();
-        TEfficiency *e3MomThetaPhi = new TEfficiency(Form("e3MomThetaPhi_%s",pidName), ";#it{p}^{va};#theta_{lab};#phi_{lab}",
-                150,p1[iParticle],p2[iParticle],150,0,90,300,-180,180);
+        const char *namePID = pidNames[iParticle].Data();
+        const char *namePID = pidNames[iParticle].Data();
+        TString name3Passed = Form("h3_passed_%s",namePID);
+        TString name2Passed = Form("h2_passed_%s",namePID);
+        TString name3Total  = Form("h3_total_%s",namePID);
+        TString name2Total  = Form("h2_total_%s",namePID);
+        TString name2       = Form("e2ThetaPhi_%s_",namePID);
+        TString name3       = Form("e3MomThetaPhi_%s",namePID);
+        //TEfficiency *e3MomThetaPhi = new TEfficiency(name3, ";#it{p}^{va};#theta_{lab};#phi_{lab}", 150,p1[iParticle],p2[iParticle],150,0,90,300,-180,180);
+        auto 
         TEfficiency *e2ThetaPhi[4] = {0};
         if (writeEfficiency2) {
-            e2ThetaPhi[0] = new TEfficiency(Form("e2_%s_0",pidName),    "p=0-500;#theta_{lab};#phi_{lab}",150,0,90,300,-180,180);
-            e2ThetaPhi[1] = new TEfficiency(Form("e2_%s_1",pidName), "p=500-1000;#theta_{lab};#phi_{lab}",150,0,90,300,-180,180);
-            e2ThetaPhi[2] = new TEfficiency(Form("e2_%s_2",pidName),"p=1000-1500;#theta_{lab};#phi_{lab}",150,0,90,300,-180,180);
-            e2ThetaPhi[3] = new TEfficiency(Form("e2_%s_3",pidName),"p=1500-2000;#theta_{lab};#phi_{lab}",150,0,90,300,-180,180);
+            e2ThetaPhi[0] = new TEfficiency(name2+0,    "p=0-500;#theta_{lab};#phi_{lab}",150,0,90,300,-180,180);
+            e2ThetaPhi[1] = new TEfficiency(name2+1, "p=500-1000;#theta_{lab};#phi_{lab}",150,0,90,300,-180,180);
+            e2ThetaPhi[2] = new TEfficiency(name2+2,"p=1000-1500;#theta_{lab};#phi_{lab}",150,0,90,300,-180,180);
+            e2ThetaPhi[3] = new TEfficiency(name2+3,"p=1500-2000;#theta_{lab};#phi_{lab}",150,0,90,300,-180,180);
         }
+
+        TH2D* h2[numMom];
+        for (auto iMom=0; iMom<numMom; ++iMom)
+            h2[iMom] = new TH2D(name2Passed+iMom,Form("%s,passed p=%d-%d;#theta_{lab};#phi_{lab}",namePID,500*iMom,500*iMom),150,0,90,300,-180,180);
+
+        TH3D* h3 = new TEfficiency(name3, ";#it{p}^{va};#theta_{lab};#phi_{lab}",150,p1[iParticle],p2[iParticle],150,0,90,300,-180,180);
 
         int oDist, oNCluster, oNClusterE;
         bool oCutCluster, oIsTrackFound;
@@ -69,7 +82,7 @@ void makeEfficiency()
 
         // input file ---------------------------------------------------------------------------------------------------
 
-        auto fileIn = new TFile(Form("/Users/ejungwoo/data/spirit/efficiency/tree_%s_embed108.root",pidName));
+        auto fileIn = new TFile(Form("/Users/ejungwoo/data/spirit/efficiency/tree_%s_embed108.root",namePID));
         auto treeTrack = (TTree*) fileIn -> Get("trktree");
 
         double zet,aoq;
@@ -182,7 +195,7 @@ void makeEfficiency()
             treeOut -> Write();
 
         if (writeEfficiency2 && drawEfficiency2) {
-            auto cvs = new TCanvas(Form("cvs_e2_%s",pidName),"",1000,720);
+            auto cvs = new TCanvas(Form("cvs_e2_%s",namePID),"",1000,720);
             cvs -> Divide(2,2);
             cvs -> cd(1); e2ThetaPhi[0] -> Draw("colz");
             cvs -> cd(2); e2ThetaPhi[1] -> Draw("colz");
