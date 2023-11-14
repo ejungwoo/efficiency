@@ -1,9 +1,23 @@
 void makeEfficiencyHist()
 {
     const int iSys = 0;
+
     const int histType = 1;
-    const int smoothingValue = 2;
-    const bool makeH3FromH3 = true; 
+    const bool makeH3FromH3 = true;
+    int smoothingValue = 4;
+    //const int histType = 0;
+    //const bool makeH3FromH3 = false;
+    //int smoothingValue = 0;
+
+    if (!makeH3FromH3)
+        smoothingValue = 0;
+
+    cout << "== hist type : " << histType << endl;
+    cout << "== smoothing : " << smoothingValue << endl;
+    cout << "== make 2->3 : " << makeH3FromH3 << endl;
+
+    TString nameFileOut = Form("efficiency.MomThetaPhi.sm%d.%s.root",smoothingValue,(makeH3FromH3?"proj":"fill"));
+    if (histType==1) nameFileOut = Form("efficiency.PtPhiRapidity.sm%d.%s.root",smoothingValue,(makeH3FromH3?"proj":"fill"));
 
     gStyle -> SetOptStat(0);
 
@@ -12,9 +26,9 @@ void makeEfficiencyHist()
     //const char* pathToEmbeddingTrees = "/home/ejungwoo/data/spirit/efficiency/"; // tree_proton_embed108 ...
     const char* pathToEmbeddingTrees = "/Users/ejungwoo/data/spirit/efficiency/"; // tree_proton_embed108 ...
     const bool writeOutputTree = false;
-    const bool writeEfficiency2 = true;
+    const bool writeEfficiency2 = false;
     const bool drawEfficiency2 = false;
-    const bool drawHist2 = true;
+    const bool drawHist2 = false;
 
     const int kTotal = 0;
     const int kPassed = 1;
@@ -23,18 +37,22 @@ void makeEfficiencyHist()
     //int arrayHL[] = {kHigh,kLow};
     int arrayHL[] = {kHigh};
 
+    int arrayParticles[] = {0,1,2,3,4};
+    //int arrayParticles[] = {0};
+
     // general parameters ---------------------------------------------------------------------------------------------------
 
     const int numP0 = 150;
     const int numTheta0 = 150;
-    const int numPhi0 = 80;
     const int numRapidity0 = 150;
+    int numPhi0 = 150; // XXX
 
     const int numTP = 2;
     const int numResolution = 2;
     int numTestVar = 12;
     double testVarBinSize = 200;
     if (histType==1) {
+        numPhi0 = 80; // XXX
         numTestVar = numPhi0;
         testVarBinSize = 360./numTestVar;
     }
@@ -65,12 +83,9 @@ void makeEfficiencyHist()
 
     // output ---------------------------------------------------------------------------------------------------
 
-    TString nameFileOut = "efficiency.MomThetaPhi.root";
-    if (histType==1) nameFileOut = "efficiency.PtPhiY.root";
     auto fileOut = new TFile(nameFileOut,"recreate");
 
-    //for (auto iParticle : {0,1,2,3,4})
-    for (auto iParticle : {0})
+    for (auto iParticle : arrayParticles)
     {
         const char *namePID = pidNames[iParticle].Data();
         cout << "== " << namePID << endl;
@@ -274,7 +289,7 @@ void makeEfficiencyHist()
 
             TCanvas* cvs = nullptr;
             if (drawEfficiency2) {
-                cvs = new TCanvas(Form("cvs_e2_%s_%s",namePID,nameHL),"",1150,700);
+                cvs = new TCanvas(Form("cvs_e2_%s_%s",namePID,nameHL),Form("cvs_e2_%s_%s",namePID,nameHL),1150,700);
                      if (numTestVar>50) cvs -> Divide(10,8,0,0);
                 else if (numTestVar>40) cvs -> Divide(10,5,0,0);
                 else if (numTestVar>35) cvs -> Divide(8,5,0,0);
@@ -294,17 +309,18 @@ void makeEfficiencyHist()
                         h2[kPassed][iHL][iVar] -> Smooth();
                     }
                 }
-                if (writeEfficiency2) {
-                    auto max = h2[kTotal][iHL][iVar] -> GetMaximum();
-                    h2[kPassed][iHL][iVar] -> SetMaximum(max);
-                    auto e2 = new TEfficiency(*h2[kPassed][iHL][iVar], *h2[kTotal][iHL][iVar]);
-                    e2 -> SetNameTitle(name2,h2[kPassed][iHL][iVar]->GetTitle());
-                    e2 -> Write();
-                    if (drawEfficiency2) {
-                        cvs -> cd(iVar+1);
-                        e2 -> Draw("colz");
-                    }
+
+                auto max = h2[kTotal][iHL][iVar] -> GetMaximum();
+                h2[kPassed][iHL][iVar] -> SetMaximum(max);
+                auto e2 = new TEfficiency(*h2[kPassed][iHL][iVar], *h2[kTotal][iHL][iVar]);
+                e2 -> SetNameTitle(name2,h2[kPassed][iHL][iVar]->GetTitle());
+                if (drawEfficiency2) {
+                    cvs -> cd(iVar+1);
+                    e2 -> Draw("colz");
                 }
+
+                if (writeEfficiency2)
+                    e2 -> Write();
             }
 
             if (makeH3FromH3)
@@ -353,7 +369,7 @@ void makeEfficiencyHist()
         {
             for (auto iTP : {kTotal,kPassed}) {
                 const char* nameTP = (iTP==kTotal?"Total":"Passed");
-                auto cvs = new TCanvas(Form("cvs_%s_%s",nameTP,namePID),"",1150,700);
+                auto cvs = new TCanvas(Form("cvs_%s_%s",nameTP,namePID),Form("cvs_%s_%s",nameTP,namePID),1150,700);
                      if (numTestVar>50) cvs -> Divide(10,8,0,0);
                 else if (numTestVar>40) cvs -> Divide(10,5,0,0);
                 else if (numTestVar>35) cvs -> Divide(8,5,0,0);
@@ -376,5 +392,5 @@ void makeEfficiencyHist()
             treeOut -> Write();
     }
 
-    fileOut -> ls();
+    cout << fileOut -> GetName() << endl;
 }
