@@ -1,62 +1,60 @@
 void makeEfficiencyHist()
 {
-    const int iSys = 0;
-
+    // option 1) pt phi rapidity efficiency ----------------------------------------------------
     const int histType = 1;
     const bool makeH3FromH3 = true;
     int smoothingValue = 4;
+
+    // option 2) mom theta phi efficiency ----------------------------------------------------
     //const int histType = 0;
     //const bool makeH3FromH3 = false;
-    //int smoothingValue = 0;
+    //int smoothingValue = 4;
 
-    if (!makeH3FromH3)
-        smoothingValue = 0;
-
-    cout << "== hist type : " << histType << endl;
-    cout << "== smoothing : " << smoothingValue << endl;
-    cout << "== make 2->3 : " << makeH3FromH3 << endl;
-
-    TString nameFileOut = Form("efficiency.MomThetaPhi.sm%d.%s.root",smoothingValue,(makeH3FromH3?"proj":"fill"));
-    if (histType==1) nameFileOut = Form("efficiency.PtPhiRapidity.sm%d.%s.root",smoothingValue,(makeH3FromH3?"proj":"fill"));
-
-    gStyle -> SetOptStat(0);
-
-    // general ---------------------------------------------------------------------------------------------------
-
-    //const char* pathToEmbeddingTrees = "/home/ejungwoo/data/spirit/efficiency/"; // tree_proton_embed108 ...
-    const char* pathToEmbeddingTrees = "/Users/ejungwoo/data/spirit/efficiency/"; // tree_proton_embed108 ...
+    // write & draw options ----------------------------------------------------
     const bool writeOutputTree = false;
     const bool writeEfficiency2 = false;
     const bool drawEfficiency2 = false;
     const bool drawHist2 = false;
+    int numTestVar = 20;
 
+    // names ---------------------------------------------------------------------------------------------------
+
+    TString nameTest; if ((drawEfficiency2 || drawHist2) && numTestVar>0) nameTest = "test.";
+    TString nameFileOut = Form("efficiency.MomThetaPhi.sm%d.%s.%sroot",smoothingValue,(makeH3FromH3?"proj":"fill"),nameTest.Data());
+    if (histType==1) nameFileOut = Form("efficiency.PtPhiRapidity.sm%d.%s.%sroot",smoothingValue,(makeH3FromH3?"proj":"fill"),nameTest.Data());
+
+    //const char* pathToEmbeddingTrees = "/home/ejungwoo/data/spirit/efficiency/"; // tree_proton_embed108 ...
+    const char* pathToEmbeddingTrees = "/Users/ejungwoo/data/spirit/efficiency/"; // tree_proton_embed108 ...
+
+    gStyle -> SetOptStat(0);
+
+    cout << "== hist-type :              " << histType << endl;
+    cout << "== smoothing value :        " << smoothingValue << endl;
+    cout << "== make 3d from smooth 2d : " << makeH3FromH3 << endl;
+    cout << "== input path :             " << pathToEmbeddingTrees << endl;
+    cout << "== output file :            " << nameFileOut << endl;
+
+    // general ---------------------------------------------------------------------------------------------------
+
+    if (!makeH3FromH3)
+        smoothingValue = 0;
+
+    const int numTotalPass = 2;
     const int kTotal = 0;
     const int kPassed = 1;
+
+    const int numResolution = 2;
     const int kHigh = 0;
     const int kLow = 1;
-    //int arrayHL[] = {kHigh,kLow};
     int arrayHL[] = {kHigh};
+    //int arrayHL[] = {kHigh,kLow};
 
-    int arrayParticles[] = {0,1,2,3,4};
     //int arrayParticles[] = {0};
+    int arrayParticles[] = {0,1,2,3,4};
 
     // general parameters ---------------------------------------------------------------------------------------------------
 
-    const int numP0 = 150;
-    const int numTheta0 = 150;
-    const int numRapidity0 = 150;
-    int numPhi0 = 150; // XXX
-
-    const int numTP = 2;
-    const int numResolution = 2;
-    int numTestVar = 12;
-    double testVarBinSize = 200;
-    if (histType==1) {
-        numPhi0 = 80; // XXX
-        numTestVar = numPhi0;
-        testVarBinSize = 360./numTestVar;
-    }
-
+    const int iSys = 0;
     const double invProjA[]  = { 44.1/1000., 55.2/1000.,45./1000. };
     const double beta[]      = {-0.364,-0.349,-0.355 };
     const double ycoll[]     = { 0.382, 0.365, 0.371 };
@@ -73,6 +71,25 @@ void makeEfficiencyHist()
     const double pt2[5]      = { 1400, 1600, 1800, 1800, 2000 };
     const double y2          = 1.6;
     const TString pidNames[] = { "proton","deuteron","triton","he3","alpha" };
+
+    int numP0 = 100;
+    const int numTheta0 = 100;
+    const int numRapidity0 = 100;
+    const int numPt0 = 100;
+    int numPhi0 = 100;
+    if ((drawEfficiency2 || drawHist2) && numTestVar>0)
+        numP0 = numTestVar;
+    numTestVar = numP0;
+    double testVarBinSize = p2[4]/numTestVar;
+
+    if (histType==1) {
+        numPhi0 = 100;
+        if ((drawEfficiency2 || drawHist2) && numTestVar>0)
+            numPhi0 = numTestVar;
+        numTestVar = numPhi0;
+        testVarBinSize = 360./numTestVar;
+    }
+    cout << "== # of test variables :    " << numTestVar << endl;
 
     // vertex and beam ---------------------------------------------------------------------------------------------------
 
@@ -92,19 +109,21 @@ void makeEfficiencyHist()
         // output ---------------------------------------------------------------------------------------------------
 
         fileOut -> cd();
-        TH3D* h3[numTP][numResolution];
-        TH2D* h2[numTP][numResolution][numTestVar];
+        TH3D* h3[numTotalPass][numResolution];
+        TH2D* h2[numTotalPass][numResolution][numTestVar];
         for (auto iTP : {kTotal,kPassed}) {
             const char* nameTP = (iTP==kTotal?"Total":"Passed");
             for (auto iHL : arrayHL) {
                 int numP = numP0;
+                int numPt = numPt0;
                 int numTheta = numTheta0;
                 int numPhi = numPhi0;
                 int numRapidity = numRapidity0;
                 if (iHL==kLow) {
                     numP = numP0/3;
+                    numPt = numPt0/3;
                     numTheta = numTheta0/3;
-                    //numPhi = numPhi0/3;
+                    numPhi = numPhi0/3;
                     numRapidity = numRapidity0/3;
                 }
                 const char* nameHL = (iHL==kHigh?"Normal":"LowRes");
@@ -112,6 +131,7 @@ void makeEfficiencyHist()
                 if (histType==0) {
                     TString title3 = Form("%s, %s, %s;#it{p}^{va};#theta_{lab};#phi_{lab}",namePID,nameTP,nameHL);
                     h3[iTP][iHL] = new TH3D(name3,title3,numP,p1[iParticle],p2[iParticle],numTheta,0,90,numPhi,-180,180);
+                    cout << "== histogram :              " << name3 << ", " << title3 << ", " << numP << ", " << numTheta << ", " << numPhi << endl;
                     for (auto iVar=0; iVar<numTestVar; ++iVar) {
                         TString name2 = Form("h2_%s_%s_%s_%d",namePID,nameTP,nameHL,iVar);
                         TString title2 = Form("%s, %s, %s, p=%d-%d;#theta_{lab};#phi_{lab}",namePID,nameTP,nameHL,int(testVarBinSize*iVar),int(testVarBinSize*(iVar+1)));
@@ -120,11 +140,12 @@ void makeEfficiencyHist()
                 }
                 else if (histType==1) {
                     TString title3 = Form("%s, %s, %s;#it{p}_{T};#phi_{CM};y_{CM}",namePID,nameTP,nameHL);
-                    h3[iTP][iHL] = new TH3D(name3,title3,numP,0,pt2[iParticle],numPhi,0,360,numRapidity,0,y2);
+                    h3[iTP][iHL] = new TH3D(name3,title3,numPt,0,pt2[iParticle],numPhi,0,360,numRapidity,0,y2);
+                    cout << "== histogram :              " << name3 << ", " << title3 << ", " << numPt << ", " << numPhi << ", " << numRapidity << endl;
                     for (auto iVar=0; iVar<numTestVar; ++iVar) {
                         TString name2 = Form("h2_%s_%s_%s_%d",namePID,nameTP,nameHL,iVar);
                         TString title2 = Form("%s, %s, %s, phi=%d-%d;y_{CM};p_{T}",namePID,nameTP,nameHL,int(testVarBinSize*iVar),int(testVarBinSize*(iVar+1)));
-                        h2[iTP][iHL][iVar] = new TH2D(name2,title2,numRapidity,0,y2,numP,0,pt2[iParticle]);
+                        h2[iTP][iHL][iVar] = new TH2D(name2,title2,numRapidity,0,y2,numPt,0,pt2[iParticle]);
                     }
                 }
             }
@@ -244,20 +265,16 @@ void makeEfficiencyHist()
                             if (!makeH3FromH3)
                                 h3[iTP][iHL] -> Fill(momMag,theta_deg,phi_deg);
                             for (auto iVar=0; iVar<numTestVar; ++iVar) {
-                                for (auto iVar=0; iVar<numTestVar; ++iVar) {
-                                    if (momMag>testVarBinSize*iVar && momMag<testVarBinSize*(iVar+1))
-                                        h2[iTP][iHL][iVar] -> Fill(theta_deg,phi_deg);
-                                }
+                                if (momMag>testVarBinSize*iVar && momMag<testVarBinSize*(iVar+1))
+                                    h2[iTP][iHL][iVar] -> Fill(theta_deg,phi_deg);
                             }
                         }
                         else if (histType==1) {
                             if (!makeH3FromH3)
                                 h3[iTP][iHL] -> Fill(mcpt, mcphi, mccmy);
                             for (auto iVar=0; iVar<numTestVar; ++iVar) {
-                                for (auto iVar=0; iVar<numTestVar; ++iVar) {
-                                    if (mcphi>testVarBinSize*iVar && mcphi<testVarBinSize*(iVar+1))
-                                        h2[iTP][iHL][iVar] -> Fill(mccmy, mcpt);
-                                }
+                                if (mcphi>testVarBinSize*iVar && mcphi<testVarBinSize*(iVar+1))
+                                    h2[iTP][iHL][iVar] -> Fill(mccmy, mcpt);
                             }
                         }
                     }
@@ -326,13 +343,15 @@ void makeEfficiencyHist()
             if (makeH3FromH3)
             {
                 int numP = numP0;
+                int numPt = numPt0;
                 int numTheta = numTheta0;
                 int numPhi = numPhi0;
                 int numRapidity = numRapidity0;
                 if (iHL==kLow) {
                     numP = numP0/3;
+                    numPt = numPt0/3;
                     numTheta = numTheta0/3;
-                    //numPhi = numPhi0/3;
+                    numPhi = numPhi0/3;
                     numRapidity = numRapidity0/3;
                 }
                 for (auto iTP : {kTotal,kPassed}) {
@@ -340,18 +359,18 @@ void makeEfficiencyHist()
                         for (auto iP=0; iP<numP; ++iP) {
                             for (auto iTheta=0; iTheta<numTheta; ++iTheta) {
                                 for (auto iPhi=0; iPhi<numPhi; ++iPhi) {
-                                    auto content = h2[iTP][iHL][iPhi] -> GetBinContent(iTheta+1,iPhi+1);
+                                    auto content = h2[iTP][iHL][iP] -> GetBinContent(iTheta+1,iPhi+1);
                                     h3[iTP][iHL] -> SetBinContent(iP+1,iTheta+1,iPhi+1,content);
                                 }
                             }
                         }
                     }
                     else if (histType==1) {
-                        for (auto iP=0; iP<numP; ++iP) {
+                        for (auto iPt=0; iPt<numPt; ++iPt) {
                             for (auto iPhi=0; iPhi<numPhi; ++iPhi) {
                                 for (auto iRapidity=0; iRapidity<numRapidity; ++iRapidity) {
-                                    auto content = h2[iTP][iHL][iPhi] -> GetBinContent(iRapidity+1,iP+1);
-                                    h3[iTP][iHL] -> SetBinContent(iP+1,iPhi+1,iRapidity+1,content);
+                                    auto content = h2[iTP][iHL][iPhi] -> GetBinContent(iRapidity+1,iPt+1);
+                                    h3[iTP][iHL] -> SetBinContent(iPt+1,iPhi+1,iRapidity+1,content);
                                 }
                             }
                         }
@@ -391,6 +410,4 @@ void makeEfficiencyHist()
         if (writeOutputTree)
             treeOut -> Write();
     }
-
-    cout << fileOut -> GetName() << endl;
 }
