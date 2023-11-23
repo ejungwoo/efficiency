@@ -15,7 +15,7 @@ void makeEfficiencyHist()
     const bool writeEfficiency2 = false;
     const bool drawEfficiency2 = false;
     const bool drawHist2 = false;
-    int numTestVar = 20;
+    int numTestVar = 12;
 
     // names ---------------------------------------------------------------------------------------------------
 
@@ -68,7 +68,9 @@ void makeEfficiencyHist()
     const double p1[5]       = { 100, 200, 100, 100, 100 };
     const double p2[5]       = { 1500, 2200, 3200, 3200, 4200 };
     //const double pt2[5]      = { 1200, 1400, 1600, 1600, 1800 };
-    const double pt2[5]      = { 1400, 1600, 1800, 1800, 2000 };
+    //const double pt2[5]      = { 1400, 1600, 1800, 1800, 2000 };
+    //const double pt2[5]      = { 1400, 1600, 1800, 1800, 2000 };
+    const double pt2[5]      = { 1600, 1800, 2200, 2200, 2500 };
     const double y2          = 1.6;
     const TString pidNames[] = { "proton","deuteron","triton","he3","alpha" };
 
@@ -179,7 +181,7 @@ void makeEfficiencyHist()
         double px,py,pz;
         double vapripx,vapripy,vapripz;
         double recopx,recopy,recopz;
-        double mcpx,mcpy,mcpz;
+        double mcpx,mcpy,mcpz, mcy;
         double mccmpx ,mccmpy ,mccmy ,mcphi;
         int    nclus, nlclus, nrclus, neclus;
 
@@ -206,6 +208,7 @@ void makeEfficiencyHist()
         treeTrack -> SetBranchAddress("mcpx",&mcpx);
         treeTrack -> SetBranchAddress("mcpy",&mcpy);
         treeTrack -> SetBranchAddress("mcpz",&mcpz);
+        treeTrack -> SetBranchAddress("mcy",&mcy);
         treeTrack -> SetBranchAddress("mccmpx",&mccmpx);
         treeTrack -> SetBranchAddress("mccmpy",&mccmpy);
         treeTrack -> SetBranchAddress("mccmy",&mccmy );
@@ -243,7 +246,10 @@ void makeEfficiencyHist()
             auto momMag = vaMom.Mag();
             auto theta_deg = vaMom.Theta()*TMath::RadToDeg();
             auto phi_deg = vaMom.Phi()*TMath::RadToDeg();
-            double mcpt = sqrt(mccmpx*mccmpx+mccmpy*mccmpy);
+            //double mcpt = sqrt(mccmpx*mccmpx+mccmpy*mccmpy);
+            //double mcrapidity = mccmy;
+            double mcpt = sqrt(mcpx*mcpx+mcpy*mcpy);
+            double mcrapidity = mcy;
 
             // cluster cut ---------------------------------------------------------------------------------------------------
 
@@ -271,10 +277,10 @@ void makeEfficiencyHist()
                         }
                         else if (histType==1) {
                             if (!makeH3FromH3)
-                                h3[iTP][iHL] -> Fill(mcpt, mcphi, mccmy);
+                                h3[iTP][iHL] -> Fill(mcpt, mcphi, mcrapidity);
                             for (auto iVar=0; iVar<numTestVar; ++iVar) {
                                 if (mcphi>testVarBinSize*iVar && mcphi<testVarBinSize*(iVar+1))
-                                    h2[iTP][iHL][iVar] -> Fill(mccmy, mcpt);
+                                    h2[iTP][iHL][iVar] -> Fill(mcrapidity, mcpt);
                             }
                         }
                     }
