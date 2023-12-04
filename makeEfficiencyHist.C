@@ -3,7 +3,7 @@ void makeEfficiencyHist()
     // option 1) pt phi rapidity efficiency ----------------------------------------------------
     const int histType = 1;
     const bool makeH3FromH3 = true;
-    int smoothingValue = 4;
+    int smoothingValue = 0;
 
     // option 2) mom theta phi efficiency ----------------------------------------------------
     //const int histType = 0;
@@ -13,26 +13,13 @@ void makeEfficiencyHist()
     // write & draw options ----------------------------------------------------
     const bool writeOutputTree = false;
     const bool writeEfficiency2 = false;
-    const bool drawEfficiency2 = false;
+    const bool drawEfficiency2 = true;
     const bool drawHist2 = false;
-    int numTestVar = 12;
+    int numTestVar = 40;
+    const int numBinsDefault = 50;
 
-    // names ---------------------------------------------------------------------------------------------------
-
-    TString nameTest; if ((drawEfficiency2 || drawHist2) && numTestVar>0) nameTest = "test.";
-    TString nameFileOut = Form("efficiency.MomThetaPhi.sm%d.%s.%sroot",smoothingValue,(makeH3FromH3?"proj":"fill"),nameTest.Data());
-    if (histType==1) nameFileOut = Form("efficiency.PtPhiRapidity.sm%d.%s.%sroot",smoothingValue,(makeH3FromH3?"proj":"fill"),nameTest.Data());
-
-    //const char* pathToEmbeddingTrees = "/home/ejungwoo/data/spirit/efficiency/"; // tree_proton_embed108 ...
-    const char* pathToEmbeddingTrees = "/Users/ejungwoo/data/spirit/efficiency/"; // tree_proton_embed108 ...
-
-    gStyle -> SetOptStat(0);
-
-    cout << "== hist-type :              " << histType << endl;
-    cout << "== smoothing value :        " << smoothingValue << endl;
-    cout << "== make 3d from smooth 2d : " << makeH3FromH3 << endl;
-    cout << "== input path :             " << pathToEmbeddingTrees << endl;
-    cout << "== output file :            " << nameFileOut << endl;
+    int dxCanvas = 1150*2.4;
+    int dyCanvas = 700*2.4;
 
     // general ---------------------------------------------------------------------------------------------------
 
@@ -74,11 +61,11 @@ void makeEfficiencyHist()
     const double y2          = 1.6;
     const TString pidNames[] = { "proton","deuteron","triton","he3","alpha" };
 
-    int numP0 = 100;
-    const int numTheta0 = 100;
-    const int numRapidity0 = 100;
-    const int numPt0 = 100;
-    int numPhi0 = 100;
+    int numP0 = numBinsDefault;
+    const int numTheta0 = numBinsDefault;
+    const int numRapidity0 = numBinsDefault;
+    const int numPt0 = numBinsDefault;
+    int numPhi0 = numBinsDefault;
     if ((drawEfficiency2 || drawHist2) && numTestVar>0)
         numP0 = numTestVar;
     numTestVar = numP0;
@@ -92,6 +79,27 @@ void makeEfficiencyHist()
         testVarBinSize = 360./numTestVar;
     }
     cout << "== # of test variables :    " << numTestVar << endl;
+
+    // names ---------------------------------------------------------------------------------------------------
+
+    TString nameTest = (((drawEfficiency2 || drawHist2) && numTestVar>0) ? "test." : "");
+    TString fillType = makeH3FromH3 ? "proj" : "fill";
+    TString nameFileOut;
+    if (histType==0)
+        nameFileOut = Form("efficiency.MomThetaPhi_%d_%d_%d.sm%d.%s.%sroot",numP0,numTheta0,numPhi0,smoothingValue,fillType.Data(),nameTest.Data());
+    if (histType==1)
+        nameFileOut = Form("efficiency.PtPhiRapidity_%d_%d_%d.sm%d.%s.%sroot",numPt0,numPhi0,numRapidity0,smoothingValue,fillType.Data(),nameTest.Data());
+
+    const char* pathToEmbeddingTrees = "/home/ejungwoo/data/spirit/efficiency/"; // tree_proton_embed108 ...
+    //const char* pathToEmbeddingTrees = "/Users/ejungwoo/data/spirit/efficiency/"; // tree_proton_embed108 ...
+
+    gStyle -> SetOptStat(0);
+
+    cout << "== hist-type :              " << histType << endl;
+    cout << "== smoothing value :        " << smoothingValue << endl;
+    cout << "== make 3d from smooth 2d : " << makeH3FromH3 << endl;
+    cout << "== input path :             " << pathToEmbeddingTrees << endl;
+    cout << "== output file :            " << nameFileOut << endl;
 
     // vertex and beam ---------------------------------------------------------------------------------------------------
 
@@ -312,7 +320,7 @@ void makeEfficiencyHist()
 
             TCanvas* cvs = nullptr;
             if (drawEfficiency2) {
-                cvs = new TCanvas(Form("cvs_e2_%s_%s",namePID,nameHL),Form("cvs_e2_%s_%s",namePID,nameHL),1150,700);
+                cvs = new TCanvas(Form("cvs_e2_%s_%s",namePID,nameHL),Form("cvs_e2_%s_%s",namePID,nameHL),dxCanvas,dyCanvas);
                      if (numTestVar>50) cvs -> Divide(10,8,0,0);
                 else if (numTestVar>40) cvs -> Divide(10,5,0,0);
                 else if (numTestVar>35) cvs -> Divide(8,5,0,0);
@@ -394,7 +402,7 @@ void makeEfficiencyHist()
         {
             for (auto iTP : {kTotal,kPassed}) {
                 const char* nameTP = (iTP==kTotal?"Total":"Passed");
-                auto cvs = new TCanvas(Form("cvs_%s_%s",nameTP,namePID),Form("cvs_%s_%s",nameTP,namePID),1150,700);
+                auto cvs = new TCanvas(Form("cvs_%s_%s",nameTP,namePID),Form("cvs_%s_%s",nameTP,namePID),dxCanvas,dyCanvas);
                      if (numTestVar>50) cvs -> Divide(10,8,0,0);
                 else if (numTestVar>40) cvs -> Divide(10,5,0,0);
                 else if (numTestVar>35) cvs -> Divide(8,5,0,0);
